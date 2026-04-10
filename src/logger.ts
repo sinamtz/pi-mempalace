@@ -142,7 +142,6 @@ export const logger: Logger = {
 		if (ompLogger) {
 			ompLogger.warn(message, context);
 		} else {
-			console.warn(`[WARN] ${message}`, context ?? {});
 			writeLog("warn", message, context);
 		}
 	},
@@ -150,20 +149,14 @@ export const logger: Logger = {
 	debug(message: string, context?: Record<string, unknown>): void {
 		if (ompLogger) {
 			ompLogger.debug(message, context);
-		} else {
-			// Only log debug in non-production
-			if (process.env.NODE_ENV !== "production") {
-				console.debug(`[DEBUG] ${message}`, context ?? {});
-			}
-			writeLog("debug", message, context);
 		}
+		writeLog("debug", message, context);
 	},
 
 	info(message: string, context?: Record<string, unknown>): void {
 		if (ompLogger) {
 			ompLogger.info?.(message, context);
 		} else {
-			console.info(`[INFO] ${message}`, context ?? {});
 			writeLog("info", message, context);
 		}
 	},

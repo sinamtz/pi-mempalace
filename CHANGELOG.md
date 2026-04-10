@@ -22,7 +22,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - WebSocket polyfill for Node.js environments where `globalThis.WebSocket` is undefined (fixes `WebSocketImpl is not a constructor` in SurrealDB).
 - Connection failures now throw a caught error with a descriptive message instead of crashing the process unhandled.
-
+- Debug/info/warn logs now write to the file log only instead of console, preventing TUI corruption.
 - Data-directory isolation now works correctly across multiple processes.
 - Multi-process startup races now fall back cleanly to connecting to an already-started server.
 - Memory writes handle SurrealKV transaction conflicts more safely.
