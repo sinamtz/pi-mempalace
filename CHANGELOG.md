@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- Bounded parallel inference in `embedBatch` with `MAX_CONCURRENT_INFERENCE=4` to prevent OOM. Without this limit, `Promise.all` over many parallel ONNX inference calls causes the ONNX Runtime to accumulate intermediate tensors across concurrent sessions, consuming gigabytes of heap — especially within a large pi session process.
+- Fixed `const files` reassignment in `file-miner.ts` that caused a TypeScript error when truncating the file list on large repositories.
+- Fixed WebSocket polyfill type incompatibility with `globalThis.WebSocket` in Node.js environments.
+- `closeAllDb` now uses hard timeouts on `db.close()` to prevent indefinite hangs when the SurrealDB WebSocket client gets stuck in a reconnect loop.
+- Added `closeAllDb` function that closes all DB connections and stops spawned SurrealDB processes.
+- Added SIGTERM/SIGINT/exit handlers to ensure orphan SurrealDB processes are cleaned up on worker termination.
+- `closeDb` now delegates to `closeAllDb` for consistency.
+
+### Changed
+- `embedBatch` now processes inference in batches of 4 concurrent calls instead of unbounded parallelism.
+- `vitest.config.ts` updated to Vitest 4 syntax (removed deprecated `poolOptions`).
+- `test/miner.test.ts` now properly closes DB connections and unloads the embedding model after each test suite.
+
+
+
 ### Added
 - First public release of **pi-mempalace**, a Pi extension for long-term semantic memory.
 - SurrealDB-backed memory storage with HNSW vector search for semantic recall.

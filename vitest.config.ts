@@ -5,11 +5,9 @@ export default defineConfig({
 		include: ["test/**/*.test.ts"],
 		environment: "node",
 		pool: "forks",
-		poolOptions: {
-			forks: {
-				singleFork: true,
-			},
+		forks: {
+			singleFork: true,
 		},
-		teardownTimeout: 60000,
+		teardownTimeout: 10000,
 	},
 });

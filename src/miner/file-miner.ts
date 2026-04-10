@@ -151,13 +151,12 @@ export async function mineDirectory(options: FileMinerOptions): Promise<FileMini
 	const wingAssignment = explicitWing ?? assignWing(directory, {}, wings).wing;
 
 	// Scan directory recursively
-	const files = await scanDirectory(directory, directory, ignoreManager, {
+	let files = await scanDirectory(directory, directory, ignoreManager, {
 		maxFileSize,
 		extensions,
 		followSymlinks,
 		result,
 	});
-
 	logger.info("Directory scan complete", {
 		dirFiles: result.filesScanned,
 		dirSkipped: result.filesSkipped,

@@ -11,7 +11,6 @@
 import "./websocket-polyfill";
 import { Surreal } from "surrealdb";
 
-
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { loadConfig, type Config } from "./config";
@@ -118,6 +117,53 @@ async function connectToServer(config: Config): Promise<Surreal> {
 	return db;
 }
 
+// ── Process exit handlers ─────────────────────────────────────────────────
+
+/**
+ * Hard timeout (ms) for closing a single DB connection.
+ * SurrealDB's WebSocket client can hang in a reconnect loop when the server dies.
+ * Using a timeout ensures process exit is not indefinitely blocked.
+ */
+const DB_CLOSE_TIMEOUT = 2000;
+
+/** Register SIGTERM/SIGINT/exit handlers to ensure clean worker shutdown. */
+function registerExitHandlers(): void {
+	// Prevent double registration
+	if ((globalThis as typeof globalThis & { __mempalaceExitHandlers?: boolean }).__mempalaceExitHandlers) {
+		return;
+	}
+	(globalThis as typeof globalThis & { __mempalaceExitHandlers: boolean }).__mempalaceExitHandlers = true;
+
+	/**
+	 * SIGTERM/SIGINT: vitest sends SIGTERM when a worker times out.
+	 * Best-effort cleanup — don't await db.close() since SurrealDB WASM + websocket
+	 * keepalive can block exit indefinitely. Let the OS clean up sockets.
+	 */
+	const terminate = (): void => {
+		for (const inst of instances.values()) {
+			inst.db.close().catch(() => {});
+		}
+		if (surrealProcess) {
+			surrealProcess.kill();
+			surrealProcess = null;
+		}
+		instances.clear();
+	};
+
+	process.on("SIGTERM", terminate);
+	process.on("SIGINT", terminate);
+
+	// Normal exit: best-effort cleanup.
+	process.on("exit", () => {
+		for (const inst of instances.values()) {
+			inst.db.close().catch(() => {});
+		}
+		if (surrealProcess) {
+			surrealProcess.kill();
+		}
+	});
+}
+
 // ── Public API ────────────────────────────────────────────────────────────
 
 /**
@@ -130,6 +176,8 @@ async function connectToServer(config: Config): Promise<Surreal> {
  * - Idempotent per dataDir
  */
 export async function connectDb(options?: { dataDir?: string }): Promise<Surreal> {
+	registerExitHandlers();
+
 	const baseConfig = loadConfig();
 	const requestedDataDir = options?.dataDir ? path.resolve(options.dataDir) : baseConfig.dataDir;
 
@@ -169,7 +217,6 @@ export async function connectDb(options?: { dataDir?: string }): Promise<Surreal
 		logger.error("Failed to connect to SurrealDB server", { error: msg, url: `ws://${config.host}:${config.port}` });
 		throw new Error(`Failed to connect to SurrealDB server: ${msg}`);
 	}
-
 
 	// Idempotent schema init
 	await db.query(
@@ -221,14 +268,42 @@ export function isDbInitialized(): boolean {
 	return instances.size > 0;
 }
 
+/** Close the DB connection and stop the spawned SurrealDB process. */
 export async function closeDb(): Promise<void> {
-	const inst = instances.values().next().value;
-	if (!inst) return;
-	const key = inst.config.dataDir;
+	await closeAllDb();
+}
 
-	logger.debug("Closing MemPalace connection");
-	await inst.db.close();
-	instances.delete(key);
+/**
+ * Close all DB connections and stop all spawned SurrealDB processes.
+ * Uses hard timeouts on db.close() to avoid hanging when the SurrealDB WebSocket
+ * client gets stuck in a reconnect loop during shutdown.
+ */
+export async function closeAllDb(): Promise<void> {
+	if (instances.size === 0) return;
+
+	logger.debug("Closing all MemPalace connections", { count: instances.size });
+
+	// Close all DB connections with hard timeout.
+	const closePromises: Promise<void>[] = [];
+	for (const inst of instances.values()) {
+		closePromises.push(
+			(async () => {
+				try {
+					await Promise.race([
+						inst.db.close(),
+						sleep(DB_CLOSE_TIMEOUT).then(() => {
+							logger.debug("DB close timed out, abandoning connection", { dataDir: inst.config.dataDir });
+						}),
+					]);
+				} catch (err) {
+					logger.debug("Error closing DB", { error: String(err) });
+				}
+			})(),
+		);
+	}
+
+	await Promise.allSettled(closePromises);
+	instances.clear();
 
 	if (surrealProcess) {
 		logger.debug("Stopping SurrealDB server", { pid: surrealProcess.pid });

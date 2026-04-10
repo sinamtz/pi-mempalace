@@ -9,7 +9,7 @@
  * - Conversation mining (parsing, room detection)
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest"
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
@@ -334,86 +334,84 @@ describe("Wing Router", () => {
 // ============================================================================
 
 describe("File Miner", () => {
-	describe("mineDirectory", () => {
-		beforeAll(async () => {
-			// Create test directory structure
-			await fs.mkdir(testDir, { recursive: true });
-			await fs.mkdir(path.join(testDir, "src"), { recursive: true });
-			await fs.mkdir(path.join(testDir, "docs"), { recursive: true });
+	beforeAll(async () => {
+		// Create test directory structure
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.mkdir(path.join(testDir, "src"), { recursive: true });
+		await fs.mkdir(path.join(testDir, "docs"), { recursive: true });
 
-			// Create test files
-			await fs.writeFile(path.join(testDir, "src", "index.ts"), "export function hello() {\n  return 'world';\n}");
-			await fs.writeFile(path.join(testDir, "README.md"), "# Test Project\n\nThis is a test.");
-			await fs.writeFile(path.join(testDir, "package.json"), '{"name": "test", "version": "1.0.0"}');
+		// Create test files
+		await fs.writeFile(path.join(testDir, "src", "index.ts"), "export function hello() {\n  return 'world';\n}");
+		await fs.writeFile(path.join(testDir, "README.md"), "# Test Project\n\nThis is a test.");
+		await fs.writeFile(path.join(testDir, "package.json"), '{"name": "test", "version": "1.0.0"}');
+	});
+
+	afterAll(async () => {
+		await cleanupTestDir();
+	});
+
+	it("should scan directory and count files", async () => {
+		const { initDb } = await import("../src/db");
+		await initDb({ dataDir: testDir });
+
+		const { mineDirectory } = await import("../src/miner/file-miner");
+
+		const result = await mineDirectory({
+			directory: testDir,
+			source: "test-mining",
 		});
 
-		afterAll(async () => {
-			await cleanupTestDir();
+		expect(result.filesScanned).toBeGreaterThan(0);
+		expect(result.filesProcessed).toBeGreaterThan(0);
+		expect(result.errors.length).toBe(0);
+	});
+
+	it("should respect file extension filters", async () => {
+		const { mineDirectory } = await import("../src/miner/file-miner");
+
+		const result = await mineDirectory({
+			directory: testDir,
+			source: "test-ts-only",
+			extensions: [".ts"],
 		});
 
-		it("should scan directory and count files", async () => {
-			const { initDb } = await import("../src/db");
-			await initDb({ dataDir: testDir });
+		// Should only process .ts files
+		expect(result.filesProcessed).toBe(1);
+		expect(result.filesSkipped).toBeGreaterThan(0);
+	});
 
-			const { mineDirectory } = await import("../src/miner/file-miner");
+	it("should skip binary files", async () => {
+		// Create a binary file with an allowed extension (.txt contains null bytes)
+		const binaryPath = path.join(testDir, "data.bin");
+		await fs.writeFile(binaryPath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
 
-			const result = await mineDirectory({
-				directory: testDir,
-				source: "test-mining",
-			});
+		const { mineDirectory } = await import("../src/miner/file-miner");
 
-			expect(result.filesScanned).toBeGreaterThan(0);
-			expect(result.filesProcessed).toBeGreaterThan(0);
-			expect(result.errors.length).toBe(0);
+		const result = await mineDirectory({
+			directory: testDir,
+			source: "test-binary-skip",
+			extensions: [".ts", ".md", ".json", ".bin"],
 		});
 
-		it("should respect file extension filters", async () => {
-			const { mineDirectory } = await import("../src/miner/file-miner");
+		// Binary file should be skipped
+		const skipped = result.skippedFiles.find(s => s.file.includes("data.bin"));
+		expect(skipped).toBeDefined();
+		expect(skipped?.reason).toBe("binary file");
+	});
 
-			const result = await mineDirectory({
-				directory: testDir,
-				source: "test-ts-only",
-				extensions: [".ts"],
-			});
+	it("should handle gitignore patterns", async () => {
+		// Create gitignore
+		await fs.writeFile(path.join(testDir, ".gitignore"), "*.log\nnode_modules\n");
 
-			// Should only process .ts files
-			expect(result.filesProcessed).toBe(1);
-			expect(result.filesSkipped).toBeGreaterThan(0);
+		const { mineDirectory } = await import("../src/miner/file-miner");
+
+		const result = await mineDirectory({
+			directory: testDir,
+			source: "test-gitignore",
 		});
 
-		it("should skip binary files", async () => {
-			// Create a binary file with an allowed extension (.txt contains null bytes)
-			const binaryPath = path.join(testDir, "data.bin");
-			await fs.writeFile(binaryPath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-
-			const { mineDirectory } = await import("../src/miner/file-miner");
-
-			const result = await mineDirectory({
-				directory: testDir,
-				source: "test-binary-skip",
-				extensions: [".ts", ".md", ".json", ".bin"],
-			});
-
-			// Binary file should be skipped
-			const skipped = result.skippedFiles.find(s => s.file.includes("data.bin"));
-			expect(skipped).toBeDefined();
-			expect(skipped?.reason).toBe("binary file");
-		});
-
-		it("should handle gitignore patterns", async () => {
-			// Create gitignore
-			await fs.writeFile(path.join(testDir, ".gitignore"), "*.log\nnode_modules\n");
-
-			const { mineDirectory } = await import("../src/miner/file-miner");
-
-			const result = await mineDirectory({
-				directory: testDir,
-				source: "test-gitignore",
-			});
-
-			// .gitignore itself may be included or not, but *.log shouldn't be processed
-			expect(result.errors.length).toBe(0);
-		});
+		// .gitignore itself may be included or not, but *.log shouldn't be processed
+		expect(result.errors.length).toBe(0);
 	});
 });
 
@@ -562,6 +560,14 @@ I'm doing great! How can I help you today?`;
 			expect(formatted.length).toBeGreaterThan(0);
 		});
 	});
+
+	// Close DB and unload model after all conversation tests complete
+	afterAll(async () => {
+		const { closeDb } = await import("../src/db");
+		await closeDb();
+		const { unloadEmbed } = await import("../src/embed");
+		await unloadEmbed();
+	});
 });
 
 // ============================================================================
@@ -588,7 +594,7 @@ describe("Mining API", () => {
 		it("should mine directory explicitly", async () => {
 			const { mine } = await import("../src/miner");
 
-const result = await mine(path.join(__dirname, "..", "src"), { type: "directory" });
+			const result = await mine(path.join(__dirname, "..", "src"), { type: "directory" });
 
 			expect("filesScanned" in result).toBe(true);
 			expect(result.filesScanned).toBeGreaterThan(0);

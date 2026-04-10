@@ -11,7 +11,7 @@ import type WebSocket from "ws";
 // Only polyfill if native WebSocket is not available
 if (typeof globalThis.WebSocket === "undefined") {
 	const { default: WS } = await import("ws");
-	(globalThis as typeof globalThis & { WebSocket: typeof WS }).WebSocket = WS;
+	(globalThis as typeof globalThis & { WebSocket: unknown }).WebSocket = WS as unknown as typeof globalThis.WebSocket;
 }
 
 // Extend global types so TypeScript knows about the polyfill
