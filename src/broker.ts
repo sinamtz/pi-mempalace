@@ -160,7 +160,16 @@ export async function connectDb(options?: { dataDir?: string }): Promise<Surreal
 		logger.debug("Server already running, connecting", { error: String(err) });
 	}
 
-	const db = await connectToServer(config);
+	// connectToServer can also fail (server died, wrong port, etc.) — handle gracefully
+	let db: Surreal;
+	try {
+		db = await connectToServer(config);
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		logger.error("Failed to connect to SurrealDB server", { error: msg, url: `ws://${config.host}:${config.port}` });
+		throw new Error(`Failed to connect to SurrealDB server: ${msg}`);
+	}
+
 
 	// Idempotent schema init
 	await db.query(
