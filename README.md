@@ -11,7 +11,7 @@ Built on the ideas from [milla-jovovich/mempalace](https://github.com/milla-jovo
 Install as a Pi extension:
 
 ```bash
-pi install npm:pi-mempalace
+pi install npm:@sinamtz/pi-mempalace
 ```
 
 No Python environment. No separate vector database. No manual server startup.
@@ -235,7 +235,7 @@ Examples:
 
 Typical workflow:
 
-1. install the extension with `pi install npm:pi-mempalace`
+1. install the extension with `pi install npm:@sinamtz/pi-mempalace`
 2. initialize memory for the current project
 3. mine the repository or store memories as you work
 4. search or recall relevant context in later sessions
@@ -260,4 +260,21 @@ bun run lint
 bun run fmt
 bun run check
 bun test
+```
+
+
+---
+
+## Alternative descriptions
+
+```text
+Semantic memory extension for Pi agents using embedded SurrealDB for unified vector, graph, and document retrieval.
+```
+
+```text
+ACID-compliant long-term memory for Pi coding agents with local vector search, knowledge graphs, and temporal versioning.
+```
+
+```text
+Local-first semantic memory palace for Pi agents powered by SurrealDB, HNSW vectors, and automated runtime management.
 ```
