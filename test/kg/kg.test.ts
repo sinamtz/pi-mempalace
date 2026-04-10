@@ -2,7 +2,7 @@
  * Tests for the Knowledge Graph module.
  */
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest"
 import {
 	detectEntities,
 	extractCandidates,

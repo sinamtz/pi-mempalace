@@ -4,7 +4,7 @@
  * Tests the layered retrieval, onboarding, diary, and protocol components.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";

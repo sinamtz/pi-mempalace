@@ -9,10 +9,12 @@
  * - Conversation mining (parsing, room detection)
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
+// Bun-compatible __dirname equivalent for Node.js/vitest
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 // Test database setup
 const testDir = path.join(os.tmpdir(), `mempalace-miner-test-${Date.now()}`);
@@ -576,7 +578,7 @@ describe("Mining API", () => {
 		it("should auto-detect file vs directory", async () => {
 			const { mine } = await import("../src/miner");
 
-			const testFile = path.join(import.meta.dir, "..", "src", "types.ts");
+			const testFile = path.join(__dirname, "..", "src", "types.ts");
 			const result = await mine(testFile, { type: "auto" });
 
 			expect("filesScanned" in result).toBe(true);
@@ -586,7 +588,7 @@ describe("Mining API", () => {
 		it("should mine directory explicitly", async () => {
 			const { mine } = await import("../src/miner");
 
-			const result = await mine(path.join(import.meta.dir, "..", "src"), { type: "directory" });
+const result = await mine(path.join(__dirname, "..", "src"), { type: "directory" });
 
 			expect("filesScanned" in result).toBe(true);
 			expect(result.filesScanned).toBeGreaterThan(0);
