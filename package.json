@@ -1,7 +1,7 @@
 {
 	"type": "module",
 	"name": "@sinamtz/pi-mempalace",
-	"version": "0.1.4",
+	"version": "0.2.0",
 	"description": "hasslefree and self-contained mempalace port for pi-coding-agent with SurrealDB-backed vector search, layered retrieval, and multi-process auto-server runtime",
 	"homepage": "https://github.com/sinamtz/pi-mempalace#readme",
 	"author": {
@@ -37,7 +37,7 @@
 		"lint": "biome lint .",
 		"lint:fix": "biome lint --write .",
 		"fmt": "biome format --write .",
-	"test": "vitest run",
+		"test": "vitest run",
 		"test:unit": "vitest run test/fs-error.test.ts test/logger.test.ts test/surreal-binary.test.ts test/extension.test.ts test/singleton.test.ts",
 		"test:crossprocess": "node test/singleton-crossprocess.ts",
 		"test:integration": "vitest run test/memory.test.ts test/miner.test.ts test/kg/kg.test.ts test/phase5.test.ts",
