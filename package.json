@@ -1,7 +1,7 @@
 {
 	"type": "module",
 	"name": "@sinamtz/pi-mempalace",
-	"version": "0.2.3",
+	"version": "0.2.4",
 	"description": "hasslefree and self-contained mempalace port for pi-coding-agent with SurrealDB-backed vector search, layered retrieval, and multi-process auto-server runtime",
 	"homepage": "https://github.com/sinamtz/pi-mempalace#readme",
 	"author": {
