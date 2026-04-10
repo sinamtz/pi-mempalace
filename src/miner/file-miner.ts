@@ -127,9 +127,8 @@ export async function mineDirectory(options: FileMinerOptions): Promise<FileMini
 		maxFileSize = DEFAULT_MAX_FILE_SIZE,
 		extensions = DEFAULT_EXTENSIONS,
 		followSymlinks = false,
-		batchSize = 16,
+		batchSize = 1,
 	} = options;
-
 	logger.info("Starting directory mining", { directory, source });
 
 	const result: FileMiningResult = {

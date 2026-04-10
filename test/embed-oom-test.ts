@@ -4,11 +4,11 @@
  * Simulates the mining pipeline: reads many files, chunks them,
  * and calls embedBatch with all chunks in one call.
  *
- * Before the MAX_CONCURRENT_INFERENCE fix, this would fire all
- * inference calls in parallel, accumulating GB of heap from
+ * Before the sequential fix, embedBatch fired all inference calls
+ * in parallel via Promise.all, accumulating GB of heap from
  * concurrent ONNX tensor allocations.
  *
- * With the fix (concurrency=4), memory stays bounded.
+ * With the fix (sequential for...of + await), memory stays bounded.
  *
  * Run: bun run test/embed-oom-test.ts
  */

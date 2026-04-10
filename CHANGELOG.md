@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - `embedBatch` now processes embeddings sequentially instead of with unbounded `Promise.all`, preventing OOM from concurrent ONNX tensor accumulation.
+- `mineDirectory` now uses `batchSize=1` to process files one at a time, avoiding concurrent file handle issues that caused V8 internal errors.
+  This also keeps memory bounded — only one file's chunks are held in memory at a time.
 - Removed the 5,000 file cap from `mineDirectory` — all files are now processed.
 - `vitest.config.ts` updated to Vitest 4 syntax (removed deprecated `poolOptions`).
 - `test/miner.test.ts` now properly closes DB connections and unloads the embedding model after each test suite.
