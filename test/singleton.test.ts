@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest"
 
 // These tests verify the module-level singleton contract.
 // They do NOT connect to SurrealDB — they test the cache/proxy behavior.

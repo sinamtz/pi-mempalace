@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest"
 import { isEnoent, isEacces, isEexist } from "../src/fs-error";
 
 describe("isEnoent", () => {

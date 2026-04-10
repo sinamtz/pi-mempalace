@@ -4,7 +4,7 @@
  * Tests for Pi extension registration and tool definitions.
  */
 
-import { describe, it, expect, beforeEach, vi } from "bun:test";
+import { describe, it, expect, beforeEach, vi } from "vitest"
 import type { ExtensionAPI, ToolDefinition } from "@mariozechner/pi-coding-agent";
 
 // Mock ExtensionAPI for testing

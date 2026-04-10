@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "bun:test";
+import { describe, it, expect, beforeEach, vi } from "vitest"
 
 // Test the logger's public contract: it delegates to a host logger when available,
 // and falls back to console when not.
