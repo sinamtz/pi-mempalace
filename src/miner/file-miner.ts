@@ -16,6 +16,8 @@ import { chunkByParagraphs, type Chunk } from "./chunker";
 import { detectRoom, type RoomConfig } from "./room-detector";
 import { assignWing, type WingConfig } from "./wing-router";
 import type { MemoryInput } from "../types";
+/** Maximum files to process in a single mining run to prevent OOM. */
+const MAX_FILES_PER_MINE = 5000;
 
 /** File mining options */
 export interface FileMinerOptions {
@@ -157,9 +159,18 @@ export async function mineDirectory(options: FileMinerOptions): Promise<FileMini
 	});
 
 	logger.info("Directory scan complete", {
-		filesScanned: result.filesScanned,
-		filesSkipped: result.filesSkipped,
+		dirFiles: result.filesScanned,
+		dirSkipped: result.filesSkipped,
 	});
+
+	// Warn if too many files — prevent OOM on large repositories
+	if (files.length > MAX_FILES_PER_MINE) {
+		logger.warn("File count exceeds safe limit, truncating", {
+			fileCount: files.length,
+			limit: MAX_FILES_PER_MINE,
+		});
+		files = files.slice(0, MAX_FILES_PER_MINE);
+	}
 
 	// Process files in batches
 	for (let i = 0; i < files.length; i += batchSize) {
