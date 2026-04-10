@@ -292,11 +292,12 @@ async function scanDirectory(
 		for (const entry of entries) {
 			const fullPath = path.join(currentDir, entry.name);
 			const relativePath = path.relative(rootDir, fullPath);
-
-			// Check if ignored
-			if (ig.ignores(relativePath)) {
-				continue;
-			}
+		// Check if this entry should be ignored (handles both files and directories)
+		// Add trailing slash for directories so ignore patterns like 'node_modules/' match
+		const ignorePath = entry.isDirectory() ? relativePath + "/" : relativePath;
+		if (ig.ignores(ignorePath)) {
+			continue;
+		}
 
 			// Handle directories
 			if (entry.isDirectory()) {
