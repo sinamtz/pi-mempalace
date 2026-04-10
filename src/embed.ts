@@ -156,80 +156,64 @@ export async function embed(text: string): Promise<Embedding> {
 	return embedding;
 }
 
-/** Maximum concurrent inference calls to prevent OOM from parallel ONNX execution. */
-const MAX_CONCURRENT_INFERENCE = 4;
-
 /**
  * Generate embeddings for multiple texts in batch.
- *
- * Processes inference in bounded concurrency batches to avoid OOM. Without this
- * limit, Promise.all over many parallel pipe() calls causes the ONNX Runtime to
- * accumulate intermediate tensors across concurrent sessions, which can consume
- * gigabytes of heap — especially within a large pi session process.
+ * Processes one at a time to keep only one inference's tensors in memory.
  *
  * @param texts - Array of texts to embed.
  * @returns Promise resolving to array of embeddings.
  */
 export async function embedBatch(texts: string[]): Promise<Embedding[]> {
-	if (texts.length === 0) return [];
-
 	const pipe = await getPipeline();
 	const startTime = performance.now();
 
 	const embeddings: Embedding[] = [];
 
-	for (let i = 0; i < texts.length; i += MAX_CONCURRENT_INFERENCE) {
-		const slice = texts.slice(i, i + MAX_CONCURRENT_INFERENCE);
+	for (const text of texts) {
+		const truncatedText = truncateText(text, EMBEDDING_CONFIG.MAX_LENGTH);
 
-		const outputs = await Promise.all(
-			slice.map(text => {
-				const truncatedText = truncateText(text, EMBEDDING_CONFIG.MAX_LENGTH);
-				return pipe(truncatedText, {
-					pooling: "mean",
-					normalize: true,
-				});
-			}),
-		);
+		const output = await pipe(truncatedText, {
+			pooling: "mean",
+			normalize: true,
+		});
 
-		for (const output of outputs) {
-			const dims = output.dims;
-			let embedding: Float32Array;
+		const dims = output.dims;
+		let embedding: Float32Array;
 
-			if (dims.length === 2 && dims[0] === 1) {
-				const data = output.data;
-				if (data instanceof Float32Array) {
-					embedding = data;
-				} else {
-					embedding = new Float32Array(data as ArrayLike<number>);
-				}
+		if (dims.length === 2 && dims[0] === 1) {
+			const data = output.data;
+			if (data instanceof Float32Array) {
+				embedding = data;
 			} else {
-				// Mean pool if needed
-				const data = output.data;
-				const typedData = data instanceof Float32Array ? data : new Float32Array(data as ArrayLike<number>);
-				embedding = new Float32Array(EMBEDDING_CONFIG.DIMENSION);
-				const seqLen = dims[1];
-				for (let k = 0; k < EMBEDDING_CONFIG.DIMENSION; k++) {
-					let sum = 0;
-					for (let j = 0; j < seqLen; j++) {
-						sum += typedData[j * EMBEDDING_CONFIG.DIMENSION + k];
-					}
-					embedding[k] = sum / seqLen;
-				}
+				embedding = new Float32Array(data as ArrayLike<number>);
 			}
-
-			// Normalize to expected dimension
-			if (embedding.length !== EMBEDDING_CONFIG.DIMENSION) {
-				if (embedding.length > EMBEDDING_CONFIG.DIMENSION) {
-					embedding = embedding.slice(0, EMBEDDING_CONFIG.DIMENSION);
-				} else {
-					const padded = new Float32Array(EMBEDDING_CONFIG.DIMENSION);
-					padded.set(embedding);
-					embedding = padded;
+		} else {
+			// Mean pool if needed
+			const data = output.data;
+			const typedData = data instanceof Float32Array ? data : new Float32Array(data as ArrayLike<number>);
+			embedding = new Float32Array(EMBEDDING_CONFIG.DIMENSION);
+			const seqLen = dims[1];
+			for (let i = 0; i < EMBEDDING_CONFIG.DIMENSION; i++) {
+				let sum = 0;
+				for (let j = 0; j < seqLen; j++) {
+					sum += typedData[j * EMBEDDING_CONFIG.DIMENSION + i];
 				}
+				embedding[i] = sum / seqLen;
 			}
-
-			embeddings.push(embedding);
 		}
+
+		// Normalize to expected dimension
+		if (embedding.length !== EMBEDDING_CONFIG.DIMENSION) {
+			if (embedding.length > EMBEDDING_CONFIG.DIMENSION) {
+				embedding = embedding.slice(0, EMBEDDING_CONFIG.DIMENSION);
+			} else {
+				const padded = new Float32Array(EMBEDDING_CONFIG.DIMENSION);
+				padded.set(embedding);
+				embedding = padded;
+			}
+		}
+
+		embeddings.push(embedding);
 	}
 
 	const duration = performance.now() - startTime;
