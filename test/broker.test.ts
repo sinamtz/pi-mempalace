@@ -6,6 +6,7 @@ import * as os from "node:os";
 import { loadConfig, saveConfig, getConfigPath } from "../src/config";
 import { closeDb, getDb, isDbInitialized, connectDb } from "../src/broker";
 import type { Config } from "../src/config";
+import { parseConfigText } from "../src/runtime";
 
 /** Test directory for isolated tests */
 const testDir = path.join(os.tmpdir(), `mempalace-broker-test-${Date.now()}`);
@@ -168,7 +169,7 @@ describe("config save", () => {
 		await saveConfig(config);
 
 		const content = await fs.readFile(testConfigPath, "utf-8");
-		const saved = Bun.JSON5.parse(content) as Config;
+		const saved = parseConfigText(content) as Config;
 		expect(saved.port).toBe(7000);
 		expect(saved.host).toBe("localhost");
 		expect(saved.user).toBe("test");
