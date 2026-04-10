@@ -220,29 +220,27 @@ Configuration at `~/.mempalace/config.json`:
 
 Environment overrides: `MEMPALACE_HOST`, `MEMPALACE_PORT`, `MEMPALACE_USER`, `MEMPALACE_PASS`, `MEMPALACE_DATA_DIR`, `MEMPALACE_SURREAL_BIN`.
 
-## Usage
+## Usage in Pi
 
-```typescript
-import { init, addMemory, queryMemories, embed, close } from "pi-mempalace";
+After installation, use MemPalace through Pi commands and tool calls.
 
-await init();
+Examples:
 
-const embedding = await embed("The project uses TypeScript");
-await addMemory({
-	text: "The project uses TypeScript",
-	embedding,
-	wing: "work",
-	room: "tech-stack",
-	source: "repo-scan",
-});
-
-const results = await queryMemories(embedding, {
-	wing: "work",
-	limit: 5,
-});
-
-await close();
+```text
+/mempalace:init
+/mempalace:mine
+/mempalace:search auth token refresh flow
+/mempalace:status
 ```
+
+Typical workflow:
+
+1. install the extension with `pi install npm:pi-mempalace`
+2. initialize memory for the current project
+3. mine the repository or store memories as you work
+4. search or recall relevant context in later sessions
+
+Programmatic APIs such as `addMemory`, `queryMemories`, `queryEntity`, and `queryRelationship` are available inside the package source for extension/runtime integration, but the primary published package model is a **Pi extension**, not a general-purpose compiled library.
 
 ---
 
