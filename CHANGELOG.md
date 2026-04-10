@@ -20,6 +20,8 @@ All notable changes to this project will be documented in this file.
 - Package follows the Pi extension package model with raw TypeScript source and `pi.extensions` metadata.
 
 ### Fixed
+- WebSocket polyfill for Node.js environments where `globalThis.WebSocket` is undefined (fixes `WebSocketImpl is not a constructor` in SurrealDB).
+
 - Data-directory isolation now works correctly across multiple processes.
 - Multi-process startup races now fall back cleanly to connecting to an already-started server.
 - Memory writes handle SurrealKV transaction conflicts more safely.

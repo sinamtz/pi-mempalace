@@ -8,7 +8,10 @@
  * - Port isolation: different data dirs get different ports (hash-based)
  */
 
+import "./websocket-polyfill";
 import { Surreal } from "surrealdb";
+
+
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { loadConfig, type Config } from "./config";
