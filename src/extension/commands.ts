@@ -41,7 +41,7 @@ export function registerCommands(pi: ExtensionAPI): void {
 	// /mempalace:init
 	// -------------------------------------------------------------------------
 	pi.registerCommand("mempalace:init", {
-		description: "Initialize the MemPalace database",
+		description: "Initialize the MemPalace database and runtime",
 		handler: async (_args, ctx) => {
 			if (!ctx.hasUI) {
 				ctx.ui.notify("MemPalace: Initializing database...", "info");

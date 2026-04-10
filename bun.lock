@@ -9,6 +9,7 @@
         "@sinclair/typebox": "^0.34.49",
         "ignore": "^7.0.5",
         "surrealdb": "^2.0.3",
+        "ws": "^8.18.1",
       },
       "devDependencies": {
         "@mariozechner/pi-coding-agent": "^0.66.1",
@@ -17,13 +18,9 @@
         "@types/ws": "^8.18.1",
       },
       "peerDependencies": {
-        "@mariozechner/pi-coding-agent": "^0.66.1",
-        "@mariozechner/pi-tui": "^0.66.1",
+        "@mariozechner/pi-coding-agent": "*",
+        "@mariozechner/pi-tui": "*",
       },
-      "optionalPeers": [
-        "@mariozechner/pi-coding-agent",
-        "@mariozechner/pi-tui",
-      ],
     },
   },
   "packages": {

@@ -47,6 +47,7 @@
 		"@huggingface/transformers": "^4.0.1",
 		"@sinclair/typebox": "^0.34.49",
 		"ignore": "^7.0.5",
+		"ws": "^8.18.1",
 		"surrealdb": "^2.0.3"
 	},
 	"devDependencies": {
