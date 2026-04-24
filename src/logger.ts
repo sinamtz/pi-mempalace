@@ -60,46 +60,34 @@ async function getOmpLogger(): Promise<OmpLogger | null> {
 /** Singleton logger instance */
 let ompLogger: OmpLogger | null = null;
 
-let logFileHandle: fs.FileHandle | null = null;
+let logsDirPromise: Promise<string> | null = null;
 
-/** Initialize the log file handle */
-async function initLogFile(): Promise<void> {
-	if (logFileHandle) return;
-
-	try {
-		const logsDir = await ensureLogsDir();
-		const date = new Date().toISOString().split("T")[0];
-		const logPath = path.join(logsDir, `mempalace.${date}.log`);
-		logFileHandle = await fs.open(logPath, "a");
-	} catch {
-		// Ignore file creation failures
-	}
+/** Get the current log file path, creating the logs directory if needed. */
+async function getLogPath(): Promise<string> {
+	logsDirPromise ??= ensureLogsDir();
+	const logsDir = await logsDirPromise;
+	const date = new Date().toISOString().split("T")[0];
+	return path.join(logsDir, `mempalace.${date}.log`);
 }
 
-/** Write a log entry to file */
+/** Write a log entry to file. */
 async function writeLog(level: LogLevel, message: string, context?: Record<string, unknown>): Promise<void> {
-	await initLogFile();
+	try {
+		const entry: Record<string, unknown> = {
+			timestamp: new Date().toISOString(),
+			level,
+			message,
+			pid: process.pid,
+		};
 
-	const entry: Record<string, unknown> = {
-		timestamp: new Date().toISOString(),
-		level,
-		message,
-		pid: process.pid,
-	};
-
-	if (context) {
-		Object.assign(entry, context);
-	}
-
-	const line = `${JSON.stringify(entry)}\n`;
-
-	// Write to file
-	if (logFileHandle) {
-		try {
-			await logFileHandle.write(line);
-		} catch {
-			// Ignore write failures
+		if (context) {
+			Object.assign(entry, context);
 		}
+
+		const line = `${JSON.stringify(entry)}\n`;
+		await fs.appendFile(await getLogPath(), line);
+	} catch {
+		// Logging must never crash the host process.
 	}
 }
 
@@ -161,8 +149,3 @@ export const logger: Logger = {
 		}
 	},
 };
-
-/** Close log file on process exit */
-process.on("exit", () => {
-	logFileHandle?.close();
-});

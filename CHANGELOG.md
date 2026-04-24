@@ -4,17 +4,41 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-04-24
+
+### Added
+
+- Added a logger regression test that verifies fallback file logging does not retain an open descriptor to the MemPalace log file.
+
 ### Fixed
 
+- Logger now writes with `fs.appendFile()` instead of holding a persistent `FileHandle`, preventing Node.js 25 from crashing Pi when the log handle is garbage-collected.
+- `tsconfig.json` is now self-contained instead of extending a missing parent config, allowing the unit test suite to run from a standalone package checkout.
+
+## [0.2.6] - 2026-04-10
+
+### Changed
+
+- `mineDirectory` now uses `batchSize=1` to process files one at a time, avoiding concurrent file handle issues that caused V8 internal errors.
+  This also keeps memory bounded — only one file's chunks are held in memory at a time.
+
+## [0.2.5] - 2026-04-10
+
+### Changed
+
+- `embedBatch` now processes embeddings sequentially instead of with unbounded `Promise.all`, preventing OOM from concurrent ONNX tensor accumulation.
+- Removed the 5,000 file cap from `mineDirectory` — all files are now processed.
+
+## [0.2.4] - 2026-04-10
+
+### Fixed
+
+- `embedBatch` now uses bounded parallel inference to prevent OOM from unbounded ONNX tensor accumulation.
 - `closeAllDb` now uses hard timeouts on `db.close()` to prevent indefinite hangs when the SurrealDB WebSocket client gets stuck in a reconnect loop.
 - Added SIGTERM/SIGINT/exit handlers to ensure orphan SurrealDB processes are cleaned up on worker termination.
 
 ### Changed
 
-- `embedBatch` now processes embeddings sequentially instead of with unbounded `Promise.all`, preventing OOM from concurrent ONNX tensor accumulation.
-- `mineDirectory` now uses `batchSize=1` to process files one at a time, avoiding concurrent file handle issues that caused V8 internal errors.
-  This also keeps memory bounded — only one file's chunks are held in memory at a time.
-- Removed the 5,000 file cap from `mineDirectory` — all files are now processed.
 - `vitest.config.ts` updated to Vitest 4 syntax (removed deprecated `poolOptions`).
 - `test/miner.test.ts` now properly closes DB connections and unloads the embedding model after each test suite.
 
