@@ -215,6 +215,70 @@ describe("MemPalace Core Storage", () => {
 			const finalCount = await countMemories();
 			expect(finalCount).toBeGreaterThanOrEqual(initialCount + 2);
 		});
+
+		it("should return similarity scores where higher is better", async () => {
+			const { addMemory, queryMemories } = await import("../src/memory");
+
+			const exact = new Float32Array(384);
+			exact[0] = 1.0;
+
+			const distant = new Float32Array(384);
+			distant[1] = 1.0;
+
+			await addMemory({
+				text: "Exact vector match",
+				embedding: exact,
+				wing: "score-wing",
+				room: "score-room",
+				source: "score-source",
+			});
+
+			await addMemory({
+				text: "Distant vector match",
+				embedding: distant,
+				wing: "score-wing",
+				room: "score-room",
+				source: "score-source",
+			});
+
+			const results = await queryMemories(exact, {
+				wing: "score-wing",
+				room: "score-room",
+				limit: 2,
+				minScore: 0,
+			});
+
+			expect(results.length).toBeGreaterThanOrEqual(2);
+			expect(results[0].memory.text).toBe("Exact vector match");
+			expect(results[0].score).toBeGreaterThan(results[1].score);
+			expect(results[0].score).toBeGreaterThan(0.99);
+			expect(results[0].score).toBeLessThanOrEqual(1);
+		});
+
+		it("should apply minScore to similarity instead of distance", async () => {
+			const { addMemory, queryMemories } = await import("../src/memory");
+
+			const embedding = new Float32Array(384);
+			embedding[0] = 1.0;
+
+			await addMemory({
+				text: "High threshold vector match",
+				embedding,
+				wing: "threshold-wing",
+				room: "threshold-room",
+				source: "threshold-source",
+			});
+
+			const results = await queryMemories(embedding, {
+				wing: "threshold-wing",
+				room: "threshold-room",
+				limit: 1,
+				minScore: 0.9,
+			});
+
+			expect(results).toHaveLength(1);
+			expect(results[0].score).toBeGreaterThan(0.9);
+		});
 	});
 
 	describe("Embedding Generation", () => {

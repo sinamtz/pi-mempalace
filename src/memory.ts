@@ -238,31 +238,38 @@ export async function queryMemories(queryEmbedding: Embedding, options: QueryOpt
 	// Execute vector search with HNSW (SurrealDB 3.0 syntax)
 	const query = `
 		SELECT id, text, embedding, wing, room, source, timestamp,
-			vector::distance::knn() AS _score
+			vector::distance::knn() AS _distance
 		FROM memory
 		${whereClause ? `${whereClause} AND` : "WHERE"} embedding <|${limit},${limit}|> ${vectorStr}
-		ORDER BY _score ASC
+		ORDER BY _distance ASC
 		LIMIT ${limit};
 	`;
 
-	const rawResults = await db.query<Array<MemoryRecord & { _score: number }>>(query);
+	const rawResults = await db.query<Array<MemoryRecord & { _distance: number }>>(query);
 
-	const results: Array<MemoryRecord & { _score: number }> = Array.isArray(rawResults[0]) ? rawResults[0] : rawResults;
+	const results: Array<MemoryRecord & { _distance: number }> = Array.isArray(rawResults[0]) ? rawResults[0] : rawResults;
 	if (!results || results.length === 0) {
 		return [];
 	}
 
-	// Filter by minimum score and map to MemoryResult
+	// Convert vector distance to similarity, then filter by minimum score.
+	// vector::distance::knn() returns a distance where lower is better, while
+	// MemoryResult.score is documented as a similarity where higher is better.
 	const memories: MemoryResult[] = [];
 
 	for (const row of results) {
-		if (row._score === null || row._score < minScore) {
+		if (row._distance === null) {
+			continue;
+		}
+
+		const score = Math.max(0, Math.min(1, 1 - row._distance));
+		if (score < minScore) {
 			continue;
 		}
 
 		memories.push({
 			memory: toMemory(row),
-			score: row._score,
+			score,
 		});
 	}
 
